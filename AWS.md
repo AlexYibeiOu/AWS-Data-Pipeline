@@ -55,7 +55,7 @@ You create roles and then assign them to AWS Resources.
 
 ### IAM operations
 
-#### Root account
+#### Root account & creata admin account
 
 1. Activate MFA
 
@@ -312,7 +312,7 @@ ssh ec2-user@3.25.98.238 -i *.pem
 5. Create index.html
 
 ```shell
-[root@ip-172-31-39-146 /]# cd /var/www
+[root@ip-172-31-39-146 /]# cd /var/www/html/
 [root@ip-172-31-39-146 html]# vi index.html
 ```
 
