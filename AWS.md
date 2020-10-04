@@ -229,13 +229,15 @@ You create roles and then assign them to AWS Resources.
 
 ###Lab: launch a EC2 instance
 
+**Step 1: launch an instance**
+
 1. Launch Instance
 
 2. Choose an Amazon Machine Image
 
-   **Free tier eligible**
+   Free tier eligible
 
-   **Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type** - ami-00826d10bbe80c195
+   Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type - ami-00826d10bbe80c195
 
    The Amazon Linux AMI is an EBS-backed, AWS-supported image. The default image includes AWS command line tools, Python, Ruby, Perl, and Java. The repositories include Docker, PHP, MySQL, PostgreSQL, and other packages.
 
@@ -281,7 +283,7 @@ You create roles and then assign them to AWS Resources.
 
    If creating an new key pair, you have to download the private key file (*.pem file) .
 
-**Now, we can ssh to EC2 in our command line.**
+**Step 2: ssh to EC2 in command line.**
 
 1. Open command line, change direction to where the pem file is stored then run below commands.
 
@@ -452,4 +454,192 @@ Launch a new EC2 instance with a role enable EC2 instance access to S3.
 
 Or, we can attached this role to the exist instance.
 
-###Lambda
+##IAM,S3,EC2 in one graph
+
+![AWS IAM S3 EC2](https://tva1.sinaimg.cn/large/007S8ZIlgy1gjcci6mx1rj30q10hngne.jpg)
+
+##Lambda
+
+### Summary
+
+- Lambda scales out (not up) automatically
+
+- Lambda functions are independent, 1 event = 1 function
+
+- Lambda is serverless
+
+- Lambda functions can trigger other lambda functions, 1 event can = x functions
+
+  if functions trigger other functions.
+
+- Lambda can do things globally, you can use it to back up S3 buckets to other
+
+  S3 buckets etc.
+
+### Lab: create a lambda funciton
+
+1. Function name.
+
+2. Runtime (Python, Java, Node.js, .NET, Ruby, Go)
+
+3. Permissions, execution role (eg: EC2 Full Access)
+
+4. Edit function code.
+
+   ```python
+   import json
+   import boto3
+   
+   def lambda_handler(event, context):
+       # TODO implement
+       ec2 = boto3.client('ec2', region_name=event['region'])
+       instances = [event['instance_id']]
+       inst = ec2.describe_instances(InstanceIds=[instances[0]])
+       state = inst['Reservations'][0]['Instances'][0]['State']['Name']
+       print(state)
+       if(state == "stopped"):
+           ec2.start_instances(InstanceIds=instances)
+           print('Started your instances: ' + instances[0])
+       else:
+           print(instances[0] + ' is already started')
+   ```
+
+   
+
+5. Memory 128MB ~ 3008MB (if necessary)
+
+6. Timeout 1sec ~ 15min (if necessary)
+
+7. VPC (if necessary)
+
+8. Create a test event
+
+   ```json
+   {
+     "instance_id": "i-0dad5e7aa7d6538db",
+     "region": "ap-southeast-2"
+   }
+   ```
+
+9. Deploy
+
+##Database on AWS
+
+###RDS
+
+#### Lab: create a RDS instance
+
+1. Engine options (MySQL) & Version
+2. Templactes (Free tier)
+3. DB instance identifier
+4. Master username & password
+5. Storage type (SSD/Magnetic)
+6. Network & Security
+   1. Security group (inbound rules: Type MYSQL/Aurora, open to your ip, eg: 59.102.47.112/32)
+   2. Public accessibility ( Yes )
+
+Workbench create a database connection:
+
+1. hostname: filled with Endpoint
+2. Port 3306
+3. User & Password
+
+####RDS - Backups
+
+- There are two different types of Backups for AWS: Automated Backups and Database Snapshots.
+- Automated Backups allow you to recover your database to any point in time within a “retention period”. The retention period can be between one and 35 days. Automated Backups will take a full daily snapshot and will also store transaction logs throughout the day. When you do a recovery, AWS will first choose the most recent daily back up, and then apply transaction logs relevant to that. This allows you to do a point in time recovery down to a second, within the retention period.
+
+#### Automated Backups
+
+- Automated Backups are enabled by default. The backup data is stored in S3 and you get free storage space equal to the size of your database. So if you have an RDS instance of 10Gb, you will get 10Gb worth of storage.
+- Backups are taken within a defined window. During the backup window, storage I/O may be suspended while your data is being backed up and you may experience elevated latency.
+
+#### Snapshots
+
+DB Snapshots are done manually (ie they are user initiated.) They are stored even after you delete the original RDS instance, unlike automated backups.
+
+#### Restoring Backups
+
+Whenever you restore either an Automatic Backup or a manual Snapshot, the restored version of the database will be a new RDS instance with a new DNS endpoint.
+
+#### Encryption
+
+- Encryption at rest is supported for MySQL, Oracle, SQL Server, PostgreSQL, MariaDB & Aurora. Encryption is done using the AWS Key Management Service (KMS) service. Once your RDS instance is encrypted, the data stored at rest in the underlying storage is encrypted, as are its automated backups, read replicas, and snapshots.
+- At the present time, encrypting an existing DB Instance is not supported. To use Amazon RDS encryption for an existing database, you must first create a snapshot, make a copy of that snapshot and encrypt the copy.
+
+#### Multi-AZ
+
+- Multi-AZ allows you to have an exact copy of your production database in another Availability Zone. AWS handles the replication for you, so when your production database is written to, this write will automatically be synchronized to the stand by database.
+- In the event of planned database maintenance, DB Instance failure, or an Availability Zone failure, Amazon RDS will automatically failover to the standby so that database operations can resume quickly without administrative intervention.
+- Mutil-AZ is for Disaster Recovery only. It is not primarily used for improving performance. For performance improvement, you need Read Replicas.
+
+#### Read replicas
+
+Read replicas allow you to have a read-only copy of your production database. This is achieved by using Asynchronous replication from the primary RDS instance to the read replica. You use read replicas primarily for very read-heavy database workloads.
+
+- Used for scaling, not for Disaster Recovery.
+
+- Must have automatic backups turned on in order to deploy a read replica.
+
+- You can have up to 5 read replica copies of any database.
+
+- You can have read replicas of read replicas (but watch out for latency.)
+
+- Each read replica will have its own DNS end point.
+
+- You can have read replicas that have Multi-AZ.
+
+- You can create read replicas of Multi-AZ source database.
+
+- Read replicas can be promoted to be their own databases. This breaks the
+
+  replication.
+
+- You can have a read replica in a second region.
+
+###DynamoDB
+
+####Overview
+
+Amazon DynamoDB is a fast and flexible NoSQL database service for all applications that need consistent, single-digit millisecond latency at any scale. It is a fully managed database and supports both document and key-value data models. Its flexible data model and reliable performance make it a great fit for mobile, web, gaming, at-tech, IoT, and many other applications.
+
+- Stored on SSD storage
+- Spread Across 3 geographically distinct data centers.
+- Eventual Consistent Reads (Default)
+- Strongly Consistent Reads
+- Eventual Consistent Reads
+   Consistency across all copies of data is usually reached within a second. Repeating a read after a short time should return the updated data. (Best Read Performance.)
+- Strongly Consistent Reads
+   A strongly consistent read returns a result that reflects all writes that received a successful response prior to the read.
+
+#### Lab: create a DynamoDB table
+
+1. Tabel name 
+2. Primary key
+3. Read/write capacity mode (Provisioned / On-demand)
+4. Provisioned capacity ( Read / Write capacity )
+5. Auto Scaling
+6. Encryption at Rest 
+   1. Default: key own by AWS 
+   2. KMS - Customer managed CMK
+   3. KMS - AWS managed CMK
+
+###RedShift
+
+###Elasticache
+
+Elasticache is a web service that makes it easy to deploy, operate and scale an in-memory cache in the cloud. The service improves the performance of web applications by allowing you to retrieve information from fast, managed, in-memory caches, instead of relying entirely on slower disk-based databases.
+
+Elasticache supports two open-source in-memory caching engines: • Memcached
+ • Redis
+
+https://aws.amazon.com/elasticache/redis-vs-memcached/
+
+###Aurora
+
+### Sumary
+
+1. RDS – OLTP  ( SQL / MySQL / PostgreSQL / Oracle / Aurora / MariaDB )
+2. DynamoDB – No SQL
+3. Redshift – OLAP
+4. Elasticache – In Memory Caching
