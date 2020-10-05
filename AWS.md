@@ -630,7 +630,9 @@ Amazon DynamoDB is a fast and flexible NoSQL database service for all applicatio
 
 Elasticache is a web service that makes it easy to deploy, operate and scale an in-memory cache in the cloud. The service improves the performance of web applications by allowing you to retrieve information from fast, managed, in-memory caches, instead of relying entirely on slower disk-based databases.
 
-Elasticache supports two open-source in-memory caching engines: • Memcached
+Elasticache supports two open-source in-memory caching engines:
+
+ • Memcached
  • Redis
 
 https://aws.amazon.com/elasticache/redis-vs-memcached/
